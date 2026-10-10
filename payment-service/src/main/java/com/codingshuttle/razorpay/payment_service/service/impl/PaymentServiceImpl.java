@@ -64,6 +64,11 @@ public class PaymentServiceImpl implements PaymentService {
         try {
             result = paymentGatewayRouter.initiate(paymentRequest);
         } catch (Exception e) {
+            if (e instanceof feign.FeignException.NotFound) {
+                // The vault answers 404 for a token that does not exist or belongs to another merchant.
+                return paymentAuthorizationRecorder.compensateAuthorizationFailure(payment.getId(),
+                        "INVALID_PAYMENT_TOKEN", "The card token is invalid or cannot be used by this merchant");
+            }
             return paymentAuthorizationRecorder.compensateAuthorizationFailure(payment.getId(),
                     "PAYMENT_GATEWAY_ROUTER_UNREACHABLE", e.getMessage());
         }

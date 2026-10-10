@@ -76,8 +76,8 @@ public class PaymentAuthorizationRecorder {
                 .orElseThrow(() -> new ResourceNotFoundException("Payment", paymentId));
 
         paymentTransitionService.apply(payment, PaymentEvent.AUTHORIZE_FAIL);
-        payment.setErrorCode(errorCode);
-        payment.setErrorDescription(errorDescription);
+        payment.setErrorCode(truncate(errorCode, 100));
+        payment.setErrorDescription(truncate(errorDescription, 255));
         payment = paymentRepository.save(payment);
 
         publishStatusEvent(payment, "PAYMENT_AUTHORIZATION_COMPENSATED");
@@ -95,7 +95,7 @@ public class PaymentAuthorizationRecorder {
             case PaymentResult.Failure failure -> {
                 paymentTransitionService.apply(payment, PaymentEvent.AUTHORIZE_FAIL);
                 payment.setErrorCode(failure.errorCode());
-                payment.setErrorDescription(failure.errorDescription());
+                payment.setErrorDescription(truncate(failure.errorDescription(), 255));
             }
             case PaymentResult.Success success ->
                     log.warn("Invalid state: initiate() gateway call returned Success directly, paymentId={}", paymentId);
@@ -105,6 +105,11 @@ public class PaymentAuthorizationRecorder {
         publishStatusEvent(payment, "PAYMENT_CREATED");
         log.info("Successfully applied Gateway result for paymentId: {}", paymentId);
         return paymentMapper.toResponse(payment);
+    }
+
+    /** Error text can come from a remote call and must never overflow its column. */
+    private static String truncate(String value, int max) {
+        return value == null || value.length() <= max ? value : value.substring(0, max);
     }
 
     private void publishStatusEvent(Payment payment, String eventType) {
