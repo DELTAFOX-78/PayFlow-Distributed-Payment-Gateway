@@ -64,7 +64,7 @@ public class Settlement extends BaseEntity {
     @Column(nullable = false, length = 20)
     private SettlementStatus status;
 
-    @Column(nullable = false, length = 50)
+    @Column(length = 50)
     private String bankReference;
 
     private LocalDateTime processedAt;

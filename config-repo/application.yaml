@@ -17,6 +17,7 @@ infra:
 MERCHANT_SERVICE_URI: http://localhost:9010
 PAYMENT_SERVICE_URI: http://localhost:9020
 VAULT_SERVICE_URI: http://localhost:9040
+OPERATIONS_SERVICE_URI: http://localhost:9030
 
 spring:
   data:

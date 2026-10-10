@@ -12,6 +12,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import com.codingshuttle.razorpay.payment_service.repository.RefundRepository;
 import java.util.UUID;
 
 @Service
@@ -20,18 +23,22 @@ import java.util.UUID;
 public class PaymentLookupServiceImpl implements PaymentLookupService {
 
     private final PaymentRepository paymentRepository;
+    private final RefundRepository refundRepository;
 
     @Override
     @Transactional
     public List<PaymentSettlementView> findUnsettledCapturedPayments(UUID merchantId) {
-        List<Payment> paymentList = paymentRepository
-                .findByMerchantIdAndStatusForUpdate(merchantId, PaymentStatus.CAPTURED);
+        List<Payment> paymentList = paymentRepository.findSettleableForUpdate(merchantId);
+        Map<UUID, Long> refunded = refundRepository
+                .sumActiveByPaymentIds(paymentList.stream().map(Payment::getId).toList()).stream()
+                .collect(Collectors.toMap(RefundRepository.RefundedTotal::getPaymentId,
+                        RefundRepository.RefundedTotal::getTotalUnits));
 
         return paymentList.stream()
                 .map(p -> new PaymentSettlementView(
                         p.getId(),
                         p.getAmount().getAmountUnits(),
-                        0, // TODO: replace with actual refund values from RefundRepository
+                        refunded.getOrDefault(p.getId(), 0L).intValue(),
                         p.getAmount().getCurrency()))
                 .toList();
     }
@@ -42,7 +49,10 @@ public class PaymentLookupServiceImpl implements PaymentLookupService {
         LocalDateTime now = LocalDateTime.now();
         List<Payment> payments = paymentRepository.findAllById(paymentList);
         for (Payment payment : payments) {
-            payment.setStatus(PaymentStatus.SETTLED);
+            // A partially refunded payment keeps that status; only fully captured ones become SETTLED.
+            if (payment.getStatus() == PaymentStatus.CAPTURED) {
+                payment.setStatus(PaymentStatus.SETTLED);
+            }
             payment.setSettledAt(now);
         }
         paymentRepository.saveAll(payments);

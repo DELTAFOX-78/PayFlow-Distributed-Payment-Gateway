@@ -47,7 +47,8 @@ public class Payment extends BaseEntity {
     @Column(nullable = false, length = 30)
     private PaymentStatus status;
 
-    @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
     private PaymentMethod method;
 
     @JdbcTypeCode(SqlTypes.JSON)

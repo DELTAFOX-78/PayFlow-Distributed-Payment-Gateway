@@ -40,7 +40,7 @@ public class OrderServiceImpl implements OrderService {
 
     private final OrderRepository orderRepository;
     private final PaymentRepository paymentRepository;
-    private final PaymentMapper paymentMapper;
+    private final PaymentViewAssembler paymentViewAssembler;
     private final OrderMapper orderMapper;
     private final CustomerServiceClient customerServiceClient;
     private final OutboxEventPublisher eventPublisher;
@@ -109,12 +109,7 @@ public class OrderServiceImpl implements OrderService {
         OrderRecord order = orderRepository.findByIdAndMerchantId(orderId, merchantId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order", orderId));
 
-        List<Payment> paymentList = paymentRepository.findByOrder_Id(order);
-
-//        return paymentList.stream().map(
-//                payment -> paymentMapper.toResponse(payment)
-//        ).collect(Collectors.toList());
-
-        return paymentMapper.toResponseList(paymentList);
+        List<Payment> paymentList = paymentRepository.findByOrder_IdOrderByCreatedAtDesc(order.getId());
+        return paymentViewAssembler.toResponses(paymentList);
     }
 }

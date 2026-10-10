@@ -28,7 +28,7 @@ public class FixedWindowRateLimiter implements RateLimiter {
 
         if (count > maxRequestAllowed) {
             Long ttl = redis.getExpire(redisKey, TimeUnit.SECONDS);
-            int retryAfter = (ttl != null & ttl > 0) ? ttl.intValue(): (int) windowSeconds;
+            int retryAfter = (ttl != null && ttl > 0) ? ttl.intValue(): (int) windowSeconds;
             return RateLimitResult.denied(retryAfter);
         }
 

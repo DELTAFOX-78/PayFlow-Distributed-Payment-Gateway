@@ -1,17 +1,20 @@
 package com.codingshuttle.razorpay.payment_service.repository;
 
-import com.codingshuttle.razorpay.payment_service.entity.OrderRecord;
-import jakarta.persistence.LockModeType;
-import jakarta.validation.constraints.Size;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Lock;
-import org.springframework.data.jpa.repository.Query;
-
 import java.util.Optional;
 import java.util.UUID;
 
-public interface OrderRepository extends JpaRepository<OrderRecord, UUID> {
-    boolean existsByMerchantIdAndReceipt(UUID merchantId, @Size(max = 100) String receipt);
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Query;
+
+import com.codingshuttle.razorpay.payment_service.entity.OrderRecord;
+
+import jakarta.persistence.LockModeType;
+
+public interface OrderRepository extends JpaRepository<OrderRecord, UUID>, JpaSpecificationExecutor<OrderRecord> {
+
+    boolean existsByMerchantIdAndReceipt(UUID merchantId, String receipt);
 
     Optional<OrderRecord> findByIdAndMerchantId(UUID orderId, UUID merchantId);
 

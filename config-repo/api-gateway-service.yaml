@@ -37,6 +37,18 @@ spring:
               uri: ${PAYMENT_SERVICE_URI}
               predicates:
                 - Path=/v1/payments/**
+            - id: payment-refunds
+              uri: ${PAYMENT_SERVICE_URI}
+              predicates:
+                - Path=/v1/refunds/**
+            - id: operations-settlements
+              uri: ${OPERATIONS_SERVICE_URI}
+              predicates:
+                - Path=/v1/settlements/**
+            - id: operations-webhook-events
+              uri: ${OPERATIONS_SERVICE_URI}
+              predicates:
+                - Path=/v1/webhook-events/**
             - id: vault-tokenize
               uri: ${VAULT_SERVICE_URI}
               predicates:

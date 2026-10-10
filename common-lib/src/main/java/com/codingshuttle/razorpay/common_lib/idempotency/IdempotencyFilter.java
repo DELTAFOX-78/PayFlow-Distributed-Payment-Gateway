@@ -99,6 +99,7 @@ public class IdempotencyFilter extends OncePerRequestFilter {
         if (separatorIndex < 0) {
             var ex = new IdempotencyConflictException("A request with this idempotency key is in progress");
             handlerExceptionResolver.resolveException(request, response, null, ex);
+            return;
         }
 
         int status = Integer.parseInt(stored.substring(0, separatorIndex));

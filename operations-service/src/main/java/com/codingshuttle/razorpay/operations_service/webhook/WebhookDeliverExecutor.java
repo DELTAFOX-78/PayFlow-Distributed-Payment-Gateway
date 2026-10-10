@@ -62,9 +62,9 @@ public class WebhookDeliverExecutor {
                     .uri(event.getTargetUrl())
                     .header(signatureHeader, event.getSignature())
                     .contentType(MediaType.APPLICATION_JSON)
-                    .body(Map.of(
-                            "event", event.getEventType(), "payload", event.getPayload()
-                    )).retrieve()
+                    .body(event.getRequestBody() != null ? event.getRequestBody()
+                            : Map.of("event", event.getEventType(), "payload", event.getPayload()))
+                    .retrieve()
                     .toBodilessEntity();
 
             int statusCode = response.getStatusCode().value();

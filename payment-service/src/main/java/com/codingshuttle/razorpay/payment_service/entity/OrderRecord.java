@@ -44,6 +44,7 @@ public class OrderRecord  extends BaseEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
+    @Builder.Default
     private OrderStatus orderStatus = OrderStatus.CREATED;
 
     @Column(nullable = false)

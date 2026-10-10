@@ -13,3 +13,4 @@ infra:
 MERCHANT_SERVICE_URI: http://merchant-service.razorpay-core.svc.cluster.local
 PAYMENT_SERVICE_URI: http://payment-service.razorpay-core.svc.cluster.local
 VAULT_SERVICE_URI: http://vault-service.razorpay-core.svc.cluster.local
+OPERATIONS_SERVICE_URI: http://operations-service.razorpay-core.svc.cluster.local

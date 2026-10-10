@@ -40,6 +40,10 @@ public class WebhookEvent extends BaseEntity {
     @Column(nullable = false)
     private String signature;
 
+    // The exact bytes that were signed. The same string is POSTed, so the signature always verifies.
+    @Column(columnDefinition = "text")
+    private String requestBody;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
     private WebhookEventStatus status;

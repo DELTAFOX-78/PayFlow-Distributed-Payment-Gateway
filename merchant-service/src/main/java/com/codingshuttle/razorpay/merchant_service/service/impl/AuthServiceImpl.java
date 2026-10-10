@@ -2,6 +2,7 @@ package com.codingshuttle.razorpay.merchant_service.service.impl;
 
 import com.codingshuttle.razorpay.common_lib.enums.MerchantStatus;
 import com.codingshuttle.razorpay.common_lib.enums.UserRole;
+import com.codingshuttle.razorpay.common_lib.exception.AuthenticationFailedException;
 import com.codingshuttle.razorpay.common_lib.exception.BusinessRuleViolationException;
 import com.codingshuttle.razorpay.common_lib.exception.DuplicateResourceException;
 import com.codingshuttle.razorpay.common_lib.exception.ResourceNotFoundException;
@@ -61,10 +62,10 @@ public class AuthServiceImpl implements AuthService {
     public LoginResponse login(LoginRequest request) {
 
         AppUser appUser = appUserRepository.findByEmail(request.email())
-                .orElseThrow(() -> new ResourceNotFoundException("User", request.email()));
+                .orElseThrow(() -> new AuthenticationFailedException("Invalid email or password"));
 
         if (!passwordEncoder.matches(request.password(), appUser.getPasswordHash())) {
-            throw new BusinessRuleViolationException("INVALID_CREDENTIALS", "Invalid email or password");
+            throw new AuthenticationFailedException("Invalid email or password");
         }
 
         String token = jwtUtil.generateAccessToken(request.email(), appUser.getMerchant().getId(), appUser.getRole().toString());

@@ -76,10 +76,15 @@ public class VaultServiceImpl implements VaultService {
 
     @Override
     @Transactional
-    public PaymentProcessorResponse charge(UUID paymentId, String token,
+    public PaymentProcessorResponse charge(UUID paymentId, UUID merchantId, String token,
                                            Money amount, Map<String, Object> methodDetails) {
         CardToken cardToken = cardTokenRepository.findByTokenAndRevokedAtIsNull(token)
                 .orElseThrow(() -> new ResourceNotFoundException("CardToken", token));
+
+        // A token is only chargeable by the merchant that created it; answer exactly like an unknown token.
+        if (merchantId == null || !merchantId.equals(cardToken.getMerchant())) {
+            throw new ResourceNotFoundException("CardToken", token);
+        }
 
         VaultCard vaultCard = cardToken.getVaultCard();
         byte[] panBytes = null;

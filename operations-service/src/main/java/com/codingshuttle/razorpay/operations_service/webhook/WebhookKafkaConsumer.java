@@ -73,6 +73,7 @@ public class WebhookKafkaConsumer {
                         .payload(data)
                         .targetUrl(target.targetUrl())
                         .signature(signature)
+                        .requestBody(signatureJson)
                         .status(WebhookEventStatus.PENDING)
                         .nextRetryAt(LocalDateTime.now())
                         .build();
