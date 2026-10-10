@@ -9,6 +9,8 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
+    strictPort: true, // fail loudly instead of silently moving to 5174
+    host: '::',       // dual-stack: reachable via localhost, 127.0.0.1 and [::1]
     proxy: {
       // Regex key: must be '/api/' so it doesn't swallow the app's own '/api-keys' route.
       '^/api/': {
