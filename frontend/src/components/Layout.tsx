@@ -1,13 +1,18 @@
 import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
-import { CreditCard, KeyRound, LayoutDashboard, LogOut, Menu, Moon, Sun, Webhook, X, Zap } from 'lucide-react'
+import {
+  Banknote, CreditCard, KeyRound, LayoutDashboard, LogOut, Menu, Moon, Receipt, Sun, UserCog, Webhook, X, Zap,
+} from 'lucide-react'
 import { useAuth } from '../lib/auth'
 
 const nav = [
   { to: '/', label: 'Overview', icon: LayoutDashboard, end: true },
   { to: '/payments', label: 'Payments', icon: CreditCard },
+  { to: '/orders', label: 'Orders', icon: Receipt },
+  { to: '/settlements', label: 'Settlements', icon: Banknote },
   { to: '/api-keys', label: 'API keys', icon: KeyRound },
   { to: '/webhooks', label: 'Webhooks', icon: Webhook },
+  { to: '/account', label: 'Account', icon: UserCog },
 ]
 
 export function useTheme() {
@@ -101,7 +106,7 @@ export default function Layout() {
             {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
         </header>
-        <main className="mx-auto w-full max-w-6xl animate-rise px-4 py-8 sm:px-8">
+        <main className="mx-auto w-full max-w-6xl animate-fade px-4 py-8 sm:px-8">
           <Outlet />
         </main>
       </div>

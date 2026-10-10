@@ -26,8 +26,9 @@ export default {
       },
       keyframes: {
         rise: { from: { opacity: 0, transform: 'translateY(6px)' }, to: { opacity: 1, transform: 'none' } },
+        fade: { from: { opacity: 0 }, to: { opacity: 1 } },
       },
-      animation: { rise: 'rise .28s ease-out both' },
+      animation: { rise: 'rise .28s ease-out both', fade: 'fade .28s ease-out both' },
     },
   },
   plugins: [],

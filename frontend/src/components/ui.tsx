@@ -3,7 +3,7 @@ import {
   type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes,
 } from 'react'
 import { AlertCircle, Check, Copy, Loader2, X } from 'lucide-react'
-import type { Tone } from '../lib/format'
+import { humanize, statusTone, type Tone } from '../lib/format'
 
 const cx = (...c: (string | false | undefined)[]) => c.filter(Boolean).join(' ')
 
@@ -131,7 +131,9 @@ export function CopyButton({ value, label }: { value: string; label?: string }) 
   )
 }
 
-export function Modal({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: ReactNode }) {
+export function Modal({ open, onClose, title, children, size = 'md' }: {
+  open: boolean; onClose: () => void; title: string; children: ReactNode; size?: 'md' | 'lg'
+}) {
   useEffect(() => {
     if (!open) return
     const h = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
@@ -142,7 +144,8 @@ export function Modal({ open, onClose, title, children }: { open: boolean; onClo
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center p-4 sm:items-center">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-md animate-rise rounded-2xl border border-line bg-surface shadow-card">
+      <div className={'relative max-h-[90vh] w-full animate-rise overflow-y-auto rounded-2xl border border-line bg-surface shadow-card ' +
+        (size === 'lg' ? 'max-w-2xl' : 'max-w-md')}>
         <div className="flex items-center justify-between border-b border-line px-5 py-4">
           <h3 className="font-semibold">{title}</h3>
           <button onClick={onClose} className="rounded-md p-1 text-muted hover:bg-raised hover:text-ink" aria-label="Close">
@@ -181,6 +184,54 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         ))}
       </div>
     </ToastCtx.Provider>
+  )
+}
+
+/** A status pill using the shared status vocabulary (payments, orders, refunds, settlements, webhooks). */
+export function StatusBadge({ status }: { status: string }) {
+  return <Badge tone={statusTone(status)}>{humanize(status)}</Badge>
+}
+
+export function Pager({ page, totalPages, totalItems, onPage }: {
+  page: number; totalPages: number; totalItems: number; onPage: (p: number) => void
+}) {
+  if (totalItems === 0) return null
+  return (
+    <div className="flex items-center justify-between border-t border-line px-5 py-3 text-xs text-muted">
+      <span>{totalItems} total · page {page + 1} of {Math.max(totalPages, 1)}</span>
+      <div className="flex gap-2">
+        <Button size="sm" variant="secondary" disabled={page <= 0} onClick={() => onPage(page - 1)}>Previous</Button>
+        <Button size="sm" variant="secondary" disabled={page + 1 >= totalPages} onClick={() => onPage(page + 1)}>Next</Button>
+      </div>
+    </div>
+  )
+}
+
+export function KeyValue({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="flex items-start justify-between gap-4 py-2 text-sm">
+      <dt className="shrink-0 text-muted">{label}</dt>
+      <dd className="min-w-0 break-words text-right">{children}</dd>
+    </div>
+  )
+}
+
+export function Tabs<T extends string>({ value, onChange, tabs }: {
+  value: T; onChange: (v: T) => void; tabs: { id: T; label: string }[]
+}) {
+  return (
+    <div className="mb-5 inline-flex rounded-xl border border-line bg-surface p-1">
+      {tabs.map((t) => (
+        <button
+          key={t.id}
+          onClick={() => onChange(t.id)}
+          className={'rounded-lg px-3.5 py-1.5 text-sm font-medium transition ' +
+            (value === t.id ? 'bg-brand-soft text-brand' : 'text-muted hover:text-ink')}
+        >
+          {t.label}
+        </button>
+      ))}
+    </div>
   )
 }
 

@@ -1,6 +1,7 @@
 import type {
-  ApiKey, ApiKeyCreated, Environment, MerchantResponse, Order, Payment,
-  PaymentMethod, TokenizeResponse, WebhookConfig, BusinessType,
+  ApiKey, ApiKeyCreated, BusinessType, Environment, MerchantProfile, MerchantResponse, Order, OrderStatus,
+  Page, Payment, PaymentMethod, PaymentStatus, PaymentTransition, Refund, RunSettlementResult, Settlement,
+  TokenizeResponse, WebhookConfig, WebhookEvent, WebhookEventStatus,
 } from './types'
 
 const BASE = (import.meta.env.VITE_API_BASE as string | undefined) ?? '/api'
@@ -80,17 +81,34 @@ async function request<T>(path: string, opts: ReqOpts = {}): Promise<T> {
   return data as T
 }
 
+function qs(params: Record<string, string | number | undefined | null>) {
+  const entries = Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== '')
+  return entries.length ? '?' + new URLSearchParams(entries.map(([k, v]) => [k, String(v)])).toString() : ''
+}
+
 export const api = {
+  // --- auth
   signup: (b: { name: string; email: string; password: string; businessName?: string; businessType?: BusinessType }) =>
     request<MerchantResponse>('/v1/auth/signup', { body: b, anonymous: true }),
   login: (b: { email: string; password: string }) =>
     request<{ accessToken: string }>('/v1/auth/login', { body: b, anonymous: true }),
 
+  // --- merchant profile
+  me: () => request<MerchantProfile>('/v1/merchants/me'),
+  updateMe: (b: { name?: string; businessName?: string; businessType?: BusinessType; contactNumber?: string; websiteUrl?: string }) =>
+    request<MerchantProfile>('/v1/merchants/me', { method: 'PUT', body: b }),
+  saveSettlementAccount: (b: { accountNumber: string; ifsc: string; accountHolderName: string }) =>
+    request<MerchantProfile>('/v1/merchants/me/settlement-account', { method: 'PUT', body: b }),
+  submitKyc: (b: { panId: string; gstId?: string }) =>
+    request<MerchantProfile>('/v1/merchants/me/kyc', { body: b }),
+
+  // --- api keys
   listKeys: () => request<ApiKey[]>('/v1/merchants/api-keys'),
   createKey: (environment: Environment) => request<ApiKeyCreated>('/v1/merchants/api-keys', { body: { environment } }),
   rotateKey: (id: string) => request<ApiKeyCreated>(`/v1/merchants/api-keys/${id}/rotate`, { method: 'POST' }),
   revokeKey: (id: string) => request<void>(`/v1/merchants/api-keys/${id}`, { method: 'DELETE' }),
 
+  // --- webhook endpoints
   listWebhooks: () => request<WebhookConfig[]>('/v1/merchants/webhooks'),
   createWebhook: (b: { targetUrl: string; eventTypes?: string }) =>
     request<WebhookConfig>('/v1/merchants/webhooks', { body: b }),
@@ -98,11 +116,19 @@ export const api = {
     request<WebhookConfig>(`/v1/merchants/webhooks/${id}`, { method: 'PUT', body: b }),
   deleteWebhook: (id: string) => request<void>(`/v1/merchants/webhooks/${id}`, { method: 'DELETE' }),
 
+  // --- webhook deliveries
+  listWebhookEvents: (p: { status?: WebhookEventStatus; page?: number; size?: number } = {}) =>
+    request<Page<WebhookEvent>>(`/v1/webhook-events${qs(p)}`),
+  getWebhookEvent: (id: string) => request<WebhookEvent>(`/v1/webhook-events/${id}`),
+  replayWebhookEvent: (id: string) => request<WebhookEvent>(`/v1/webhook-events/${id}/replay`, { method: 'POST' }),
+
+  // --- vault
   tokenize: (
     b: { pan: string; cvv: string; expiryMonth: number; expiryYear: number; cardHolderName?: string; customerId?: string },
     basic?: ApiKeyCredentials | null,
   ) => request<TokenizeResponse>('/v1/vault/tokenize', { body: b, basic }),
 
+  // --- orders
   createOrder: (
     b: {
       amount: { amountUnits: number; currency: string }
@@ -112,7 +138,11 @@ export const api = {
     },
     basic?: ApiKeyCredentials | null,
   ) => request<Order>('/v1/orders', { body: b, basic }),
+  listOrders: (p: { status?: OrderStatus; page?: number; size?: number } = {}) =>
+    request<Page<Order>>(`/v1/orders${qs(p)}`),
+  cancelOrder: (id: string) => request<Order>(`/v1/orders/${id}/cancel`, { method: 'POST' }),
 
+  // --- payments
   initiatePayment: (
     b: { orderId: string; method: PaymentMethod; methodDetails?: Record<string, unknown> },
     basic?: ApiKeyCredentials | null,
@@ -120,8 +150,26 @@ export const api = {
     request<Payment>('/v1/payments', {
       body: b, basic, headers: { 'X-Idempotency-Key': crypto.randomUUID() },
     }),
+  listPayments: (p: { status?: PaymentStatus; method?: PaymentMethod; orderId?: string; page?: number; size?: number } = {}) =>
+    request<Page<Payment>>(`/v1/payments${qs(p)}`),
+  getPayment: (id: string, basic?: ApiKeyCredentials | null) => request<Payment>(`/v1/payments/${id}`, { basic }),
+  paymentTimeline: (id: string) => request<PaymentTransition[]>(`/v1/payments/${id}/timeline`),
   capturePayment: (id: string, basic?: ApiKeyCredentials | null) =>
     request<Payment>(`/v1/payments/${id}/capture`, { method: 'POST', basic }),
+
+  // --- refunds
+  listPaymentRefunds: (paymentId: string) => request<Refund[]>(`/v1/payments/${paymentId}/refunds`),
+  refund: (paymentId: string, amountUnits?: number) =>
+    request<Refund>(`/v1/payments/${paymentId}/refunds`, {
+      body: amountUnits ? { amountUnits } : {},
+      headers: { 'X-Idempotency-Key': crypto.randomUUID() },
+    }),
+  listRefunds: (p: { page?: number; size?: number } = {}) => request<Page<Refund>>(`/v1/refunds${qs(p)}`),
+
+  // --- settlements
+  listSettlements: (p: { page?: number; size?: number } = {}) => request<Page<Settlement>>(`/v1/settlements${qs(p)}`),
+  getSettlement: (id: string) => request<Settlement>(`/v1/settlements/${id}`),
+  runSettlement: () => request<RunSettlementResult>('/v1/settlements/run', { method: 'POST' }),
 }
 
 /** Decode (without verifying) the claims of the session JWT. */

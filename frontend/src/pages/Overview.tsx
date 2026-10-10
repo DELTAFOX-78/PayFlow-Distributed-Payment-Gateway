@@ -1,11 +1,12 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight, Check, CircleDashed, IndianRupee, Percent, Receipt, Wallet } from 'lucide-react'
+import {
+  AlertTriangle, ArrowRight, Check, CircleDashed, IndianRupee, Percent, Receipt, Wallet,
+} from 'lucide-react'
 import { api } from '../lib/api'
-import { useAuth } from '../lib/auth'
-import { loadActivity } from '../lib/activity'
-import { formatDate, formatMoney, humanize, paymentTone, shortId } from '../lib/format'
-import { Badge, Button, Card, CardHeader, Empty, PageHeader } from '../components/ui'
+import { formatDate, formatUnits, shortId } from '../lib/format'
+import type { MerchantProfile, Payment, Page } from '../lib/types'
+import { Button, Card, CardHeader, Empty, PageHeader, StatusBadge } from '../components/ui'
 
 function Stat({ icon: Icon, label, value, hint }: { icon: typeof Wallet; label: string; value: string; hint?: string }) {
   return (
@@ -21,65 +22,84 @@ function Stat({ icon: Icon, label, value, hint }: { icon: typeof Wallet; label: 
 }
 
 export default function Overview() {
-  const { merchantId } = useAuth()
-  const activity = useMemo(() => loadActivity(merchantId), [merchantId])
-  const [keys, setKeys] = useState<number | null>(null)
-  const [hooks, setHooks] = useState<number | null>(null)
+  const [profile, setProfile] = useState<MerchantProfile | null>(null)
+  const [payments, setPayments] = useState<Page<Payment> | null>(null)
+  const [orderCount, setOrderCount] = useState<number | null>(null)
+  const [keys, setKeys] = useState(0)
+  const [hooks, setHooks] = useState(0)
+  const [settlements, setSettlements] = useState(0)
 
   useEffect(() => {
-    api.listKeys().then((k) => setKeys(k.length)).catch(() => setKeys(0))
-    api.listWebhooks().then((w) => setHooks(w.length)).catch(() => setHooks(0))
+    api.me().then(setProfile).catch(() => {})
+    api.listPayments({ size: 100 }).then(setPayments).catch(() => setPayments({ items: [], page: 0, size: 100, totalItems: 0, totalPages: 0 }))
+    api.listOrders({ size: 1 }).then((p) => setOrderCount(p.totalItems)).catch(() => setOrderCount(0))
+    api.listKeys().then((k) => setKeys(k.length)).catch(() => {})
+    api.listWebhooks().then((w) => setHooks(w.length)).catch(() => {})
+    api.listSettlements({ size: 1 }).then((s) => setSettlements(s.totalItems)).catch(() => {})
   }, [])
 
-  const payments = activity.flatMap((a) => a.payments)
-  const captured = payments.filter((p) => p.status === 'CAPTURED' || p.status === 'SETTLED')
-  const volume = captured.reduce((s, p) => s + p.amount.amountUnits, 0)
-  const rate = payments.length ? Math.round((captured.length / payments.length) * 100) : 0
+  const items = payments?.items ?? []
+  const successful = items.filter((p) => ['CAPTURED', 'SETTLED', 'PARTIALLY_REFUNDED', 'REFUNDED'].includes(p.status))
+  const finished = items.filter((p) => !['CREATED', 'AUTHORIZING', 'CAPTURING'].includes(p.status))
+  const volume = successful.reduce((s, p) => s + p.amount.amountUnits, 0)
+  const refunded = items.reduce((s, p) => s + (p.refundedAmountUnits ?? 0), 0)
+  const rate = finished.length ? Math.round((successful.length / finished.length) * 100) : null
 
   const steps = [
-    { done: (keys ?? 0) > 0, title: 'Generate an API key', hint: 'Authenticate server-to-server calls.', to: '/api-keys' },
-    { done: (hooks ?? 0) > 0, title: 'Add a webhook endpoint', hint: 'Get notified when payments change state.', to: '/webhooks' },
-    { done: payments.length > 0, title: 'Run a test payment', hint: 'Create an order and pay with a test card.', to: '/payments' },
+    { done: !!profile?.settlementAccountConfigured, title: 'Add a settlement account', hint: 'Where your payouts are sent.', to: '/account' },
+    { done: !!profile?.kycComplete, title: 'Complete KYC', hint: 'Activates your account for settlements.', to: '/account' },
+    { done: keys > 0, title: 'Generate an API key', hint: 'Authenticate server-to-server calls.', to: '/api-keys' },
+    { done: hooks > 0, title: 'Add a webhook endpoint', hint: 'Get notified when payments change state.', to: '/webhooks' },
+    { done: (payments?.totalItems ?? 0) > 0, title: 'Run a test payment', hint: 'Create an order and pay with a test card.', to: '/payments/new' },
+    { done: settlements > 0, title: 'Run your first settlement', hint: 'Pay out captured payments to your bank.', to: '/settlements' },
   ]
-
-  const recent = activity.slice(0, 6)
 
   return (
     <>
       <PageHeader
-        title="Overview"
+        title={profile ? `Welcome, ${profile.name.split(' ')[0]}` : 'Overview'}
         subtitle="Your sandbox at a glance."
-        action={<Link to="/payments"><Button>New test payment <ArrowRight className="h-4 w-4" /></Button></Link>}
+        action={<Link to="/payments/new"><Button>New test payment <ArrowRight className="h-4 w-4" /></Button></Link>}
       />
 
+      {profile && profile.merchantStatus !== 'ACTIVE' && (
+        <Link to="/account" className="mb-6 flex items-center gap-3 rounded-xl bg-warn/10 px-4 py-3 text-sm transition hover:bg-warn/15">
+          <AlertTriangle className="h-4 w-4 shrink-0 text-warn" />
+          <span className="flex-1">
+            <strong>Your account is not active yet.</strong> Add a settlement account and complete KYC to enable settlements.
+          </span>
+          <ArrowRight className="h-4 w-4 text-muted" />
+        </Link>
+      )}
+
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Stat icon={IndianRupee} label="Captured volume" value={formatMoney({ amountUnits: volume, currency: 'INR' })} hint="From this browser's activity" />
-        <Stat icon={Receipt} label="Orders created" value={String(activity.length)} />
-        <Stat icon={Wallet} label="Payments attempted" value={String(payments.length)} />
-        <Stat icon={Percent} label="Success rate" value={payments.length ? `${rate}%` : '—'} />
+        <Stat icon={IndianRupee} label="Captured volume" value={formatUnits(volume)} hint={`${formatUnits(refunded)} refunded`} />
+        <Stat icon={Receipt} label="Orders" value={orderCount == null ? '…' : String(orderCount)} />
+        <Stat icon={Wallet} label="Payments" value={payments == null ? '…' : String(payments.totalItems)} hint="latest 100 used for volume" />
+        <Stat icon={Percent} label="Success rate" value={rate == null ? '—' : `${rate}%`} hint="of completed attempts" />
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-5">
         <Card className="lg:col-span-3">
-          <CardHeader title="Recent orders" hint="Orders created from this console" action={<Link to="/payments" className="text-xs font-medium text-brand hover:underline">View all</Link>} />
-          {recent.length === 0 ? (
+          <CardHeader title="Recent payments" action={<Link to="/payments" className="text-xs font-medium text-brand hover:underline">View all</Link>} />
+          {items.length === 0 ? (
             <Empty
               icon={<Receipt className="h-5 w-5" />}
-              title="No orders yet"
+              title="No payments yet"
               hint="Run a test payment to see it show up here."
-              action={<Link to="/payments"><Button size="sm">Create test order</Button></Link>}
+              action={<Link to="/payments/new"><Button size="sm">Create test payment</Button></Link>}
             />
           ) : (
             <ul className="divide-y divide-line">
-              {recent.map(({ order, payments: ps }) => (
-                <li key={order.id} className="flex items-center justify-between gap-4 px-5 py-3.5">
+              {items.slice(0, 7).map((p) => (
+                <li key={p.id} className="flex items-center justify-between gap-4 px-5 py-3.5">
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium">{order.receipt || `Order ${shortId(order.id)}`}</p>
-                    <p className="text-xs text-muted">{formatDate(order.createdAt)} · {ps.length} attempt{ps.length === 1 ? '' : 's'}</p>
+                    <p className="font-mono text-sm">{shortId(p.id)}</p>
+                    <p className="text-xs text-muted">{formatDate(p.createdAt)} · {p.method.toLowerCase()}</p>
                   </div>
                   <div className="flex items-center gap-4">
-                    <span className="text-sm font-medium tabular-nums">{formatMoney(order.amount)}</span>
-                    <Badge tone={paymentTone(order.status)}>{humanize(order.status)}</Badge>
+                    <span className="text-sm font-medium tabular-nums">{formatUnits(p.amount.amountUnits, p.amount.currency)}</span>
+                    <StatusBadge status={p.status} />
                   </div>
                 </li>
               ))}
@@ -92,7 +112,7 @@ export default function Overview() {
           <ul className="divide-y divide-line">
             {steps.map((s) => (
               <li key={s.title}>
-                <Link to={s.to} className="flex items-center gap-3.5 px-5 py-4 transition hover:bg-raised/60">
+                <Link to={s.to} className="flex items-center gap-3.5 px-5 py-3.5 transition hover:bg-raised/60">
                   <span className={'flex h-7 w-7 shrink-0 items-center justify-center rounded-full ' + (s.done ? 'bg-ok/15 text-ok' : 'bg-raised text-muted')}>
                     {s.done ? <Check className="h-4 w-4" /> : <CircleDashed className="h-4 w-4" />}
                   </span>
