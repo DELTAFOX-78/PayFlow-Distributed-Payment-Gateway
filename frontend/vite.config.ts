@@ -10,7 +10,8 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      '/api': {
+      // Regex key: must be '/api/' so it doesn't swallow the app's own '/api-keys' route.
+      '^/api/': {
         target: gateway,
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, ''),
