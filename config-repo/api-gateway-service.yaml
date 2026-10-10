@@ -1,0 +1,44 @@
+server:
+  port: 8080
+
+jwt:
+  secret-key: ${JWT_SECRET}
+
+app:
+  security:
+    # Ant patterns that skip authentication.
+    public-routes:
+      - /v1/auth/**
+      - /actuator/**
+  rate-limit:
+    use-case:
+      api-key:
+        requests-per-minute: 60
+
+spring:
+  cloud:
+    gateway:
+      server:
+        webmvc:
+          routes:
+            - id: merchant-auth
+              uri: ${MERCHANT_SERVICE_URI}
+              predicates:
+                - Path=/v1/auth/**
+            - id: merchant-management
+              uri: ${MERCHANT_SERVICE_URI}
+              predicates:
+                - Path=/v1/merchants/**
+            - id: payment-orders
+              uri: ${PAYMENT_SERVICE_URI}
+              predicates:
+                - Path=/v1/orders/**
+            - id: payment-payments
+              uri: ${PAYMENT_SERVICE_URI}
+              predicates:
+                - Path=/v1/payments/**
+            - id: vault-tokenize
+              uri: ${VAULT_SERVICE_URI}
+              predicates:
+                - Path=/v1/vault/**
+            # /internal/** is deliberately NOT routed.

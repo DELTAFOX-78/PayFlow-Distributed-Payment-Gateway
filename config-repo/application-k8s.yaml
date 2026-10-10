@@ -1,0 +1,15 @@
+# Applied when SPRING_PROFILES_ACTIVE=k8s (namespace: razorpay-core).
+
+infra:
+  postgres:
+    host: postgres.razorpay-core.svc.cluster.local
+  redis:
+    host: redis.razorpay-core.svc.cluster.local
+  kafka:
+    bootstrap-servers: kafka.razorpay-core.svc.cluster.local:9092
+  zipkin:
+    endpoint: http://zipkin.razorpay-core.svc.cluster.local:9411/api/v2/spans
+
+MERCHANT_SERVICE_URI: http://merchant-service.razorpay-core.svc.cluster.local
+PAYMENT_SERVICE_URI: http://payment-service.razorpay-core.svc.cluster.local
+VAULT_SERVICE_URI: http://vault-service.razorpay-core.svc.cluster.local

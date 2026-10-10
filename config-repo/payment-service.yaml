@@ -1,0 +1,32 @@
+server:
+  port: 9020
+
+spring:
+  datasource:
+    url: jdbc:postgresql://${infra.postgres.host}:${infra.postgres.port}/razorpay-payment-db
+    username: payment_user
+    password: ${PAYMENT_DB_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+
+payment:
+  order:
+    default-order-expiry-minutes: 30
+  simulator:
+    poll-interval-ms: 5000
+    chaos-mode: NORMAL      # NORMAL | SLOW | FAILURE | SUCCESS | TIMEOUT
+    methods:
+      CARD:
+        min-delay-seconds: 1
+        max-delay-seconds: 4
+        success-rate: 90
+      UPI:
+        min-delay-seconds: 1
+        max-delay-seconds: 5
+        success-rate: 85
+      NETBANKING:
+        min-delay-seconds: 2
+        max-delay-seconds: 8
+        success-rate: 80

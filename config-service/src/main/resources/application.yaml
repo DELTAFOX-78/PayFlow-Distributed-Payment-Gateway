@@ -1,0 +1,63 @@
+spring:
+  application:
+    name: config-service
+
+  cloud:
+    config.server.git:
+      uri: ${GIT_CONFIG_REPO:https://github.com/DELTAFOX-78/PayFlow-Distributed-Payment-Gateway.git}
+      username: ${GIT_USERNAME:}
+      password: ${GIT_PASSWORD:}
+      search-paths: ${GIT_CONFIG_PATH:config-repo}
+      default-label: ${GIT_CONFIG_LABEL:main}
+
+server.port: 8888
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  health:
+    config:
+      enabled: false
+  tracing:
+    sampling:
+      probability: 1.0
+  zipkin:
+    tracing:
+      endpoint: http://localhost:9411/api/v2/spans
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
+
+---
+
+spring:
+  config:
+    activate:
+      on-profile: k8s
+
+  cloud:
+    discovery:
+      enabled: false
+
+    config.server.git:
+      uri: ${GIT_CONFIG_REPO}
+      username: ${GIT_USERNAME}
+      password: ${GIT_PASSWORD}
+      search-paths: ${GIT_CONFIG_PATH:config-repo}
+      default-label: ${GIT_CONFIG_LABEL:main}
+
+eureka:
+  client:
+    enabled: false
+    register-with-eureka: false
+    fetch-registry: false
+
+management:
+  zipkin:
+    tracing:
+      endpoint: http://zipkin.razorpay-core.svc.cluster.local:9411/api/v2/spans
+
+

@@ -1,0 +1,19 @@
+server:
+  port: 9010
+
+jwt:
+  secret-key: ${JWT_SECRET}
+
+# AES key used to encrypt webhook signing secrets at rest.
+webhook:
+  secret-encryption-key: ${WEBHOOK_SECRET_ENCRYPTION_KEY}
+
+spring:
+  datasource:
+    url: jdbc:postgresql://${infra.postgres.host}:${infra.postgres.port}/razorpay-merchant-db
+    username: merchant_user
+    password: ${MERCHANT_DB_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false

@@ -1,0 +1,18 @@
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+
+# Build output
+target/
+dist/
+node_modules/
+*.log
+
+# Secrets and local data
+k8s/k8s-secrets.env
+k8s/api_keys.csv
+k8s/jmeter.log
+local-env/
+*.env
+!*.env.example

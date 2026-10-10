@@ -1,0 +1,46 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: 246 247 251;
+  --surface: 255 255 255;
+  --raised: 241 243 249;
+  --line: 226 230 240;
+  --ink: 17 24 39;
+  --muted: 100 110 130;
+  --brand: 67 56 202;
+  --brand-soft: 238 240 255;
+  --brand-ink: 255 255 255;
+  --ok: 5 150 105;
+  --warn: 202 138 4;
+  --bad: 220 38 38;
+  --shadow: 30 41 80;
+  color-scheme: light;
+}
+:root.dark {
+  --bg: 10 12 20;
+  --surface: 18 21 33;
+  --raised: 27 31 46;
+  --line: 40 45 66;
+  --ink: 238 241 250;
+  --muted: 142 151 176;
+  --brand: 129 140 248;
+  --brand-soft: 30 33 66;
+  --brand-ink: 10 12 20;
+  --ok: 52 211 153;
+  --warn: 250 204 21;
+  --bad: 248 113 113;
+  --shadow: 0 0 0;
+  color-scheme: dark;
+}
+
+html, body, #root { height: 100%; }
+body {
+  @apply bg-bg font-sans text-ink antialiased;
+  background-image:
+    radial-gradient(900px 400px at 85% -10%, rgb(var(--brand) / 0.10), transparent 60%),
+    radial-gradient(700px 360px at -10% 110%, rgb(var(--brand) / 0.06), transparent 60%);
+  background-attachment: fixed;
+}
+::selection { background: rgb(var(--brand) / 0.25); }

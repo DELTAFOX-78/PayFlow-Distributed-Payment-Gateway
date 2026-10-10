@@ -1,0 +1,24 @@
+server:
+  port: 9040
+
+# Master key that wraps the per-card data-encryption keys.
+vault:
+  master-key: ${VAULT_MASTER_KEY}
+
+spring:
+  datasource:
+    url: jdbc:postgresql://${infra.postgres.host}:${infra.postgres.port}/razorpay-vault-db
+    username: vault_user
+    password: ${VAULT_DB_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+
+resilience4j:
+  thread-pool-bulkhead:
+    instances:
+      vault-card-processor:
+        core-thread-pool-size: 10
+        max-thread-pool-size: 20
+        queue-capacity: 50

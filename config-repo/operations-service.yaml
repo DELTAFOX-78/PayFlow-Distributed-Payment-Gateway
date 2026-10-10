@@ -1,0 +1,35 @@
+server:
+  port: 9030
+
+spring:
+  datasource:
+    url: jdbc:postgresql://${infra.postgres.host}:${infra.postgres.port}/razorpay-operations-db
+    username: operations_user
+    password: ${OPERATIONS_DB_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+  kafka:
+    consumer:
+      group-id: operations-service
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JacksonJsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+        spring.json.use.type.headers: false
+        spring.json.value.default.type: java.util.LinkedHashMap
+    listener:
+      ack-mode: manual
+
+app:
+  webhook:
+    delivery:
+      redis-key: webhook-retry
+      poll-batch-size: 100
+
+webhook:
+  delivery:
+    signature-header: X-Razorpay-Signature
